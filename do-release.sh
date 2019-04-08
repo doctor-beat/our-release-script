@@ -51,6 +51,11 @@ if [ $STEP == 'init' ] ; then
 	echo "Git branch&merge is done. Check the 'git status' above and commit if OK."
 
 elif [ $STEP == 'version' ] ; then
+	current_branch=`git rev-parse --abbrev-ref HEAD`
+	if [ $current_branch != $BRANCHNAME ] ; then
+		__error "Unexpected current branch: '${current_branch}' (Expected: '${BRANCHNAME}')."
+	fi
+
     gitf=".git"
 	if [ -f "$gitf/MERGE_HEAD" ]; then
 		#commit the merge if needed:
@@ -58,9 +63,13 @@ elif [ $STEP == 'version' ] ; then
 	fi
 	__git_clean ;
 
-	mvn versions:set -DnewVersion=$RELEASE
-	mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$RELEASE
-	git commit -am "pom versions" # && git push -u or
+	if [ -f "pom.xml" ] ; then
+		mvn versions:set -DnewVersion=$RELEASE
+		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$RELEASE
+		git commit -am "pom versions" 
+	fi
+
+	# git push -u origin
 else 
 	__error "Unknown step '${STEP}'. Allowed values are: init, version, ..."
 fi
