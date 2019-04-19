@@ -1,5 +1,7 @@
 #!/bin/bash
 
+VERSION="19.04.002"
+
 #WORKSPACES=/opt/hawaii/workspace
 PROJECT=${PWD##*/}
 STEP="${1,,}"
@@ -21,11 +23,24 @@ if [ -z ${STEP} ]; then
     __error "No step passed; Exiting program."
 fi
 
+if [ $STEP == '-v' ] ; then
+	echo "do-release.sh; version: ${VERSION}"
+	exit
+fi
+
 if [ -z ${RELEASE} ]; then
     __error "No release-name passed; Exiting program."
 fi
 
+if [[ $RELEASE =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+	next=$(( ${BASH_REMATCH[2]} + 1 ))
+	SNAPSHOT="${BASH_REMATCH[1]}.${next}"
+else 
+	__error "Invalid release version format"
+fi
+
 echo "Preparing step '${STEP}' of release '$RELEASE' for '${PROJECT}'"
+echo " - version: ${VERSION}"
 
 repo_info="$(git rev-parse --git-dir --is-inside-git-dir \
 	--is-bare-repository --is-inside-work-tree \
@@ -43,6 +58,7 @@ if [ $STEP == 'init' ] ; then
 		__error "Branch '${BRANCHNAME}' already exists"
 	fi 
 
+	#create release branch & merge dev into
 	git fetch --quiet && git checkout -b $BRANCHNAME master \
 		&& git merge --no-commit --no-ff --quiet origin/dev
 		#&& git push -u origin/$BRANCHNAME \
@@ -63,13 +79,47 @@ elif [ $STEP == 'version' ] ; then
 	fi
 	__git_clean ;
 
+	#set pom versions
 	if [ -f "pom.xml" ] ; then
-		mvn versions:set -DnewVersion=$RELEASE
-		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$RELEASE
+		mvn versions:set -DnewVersion=$RELEASE.0001
+		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$RELEASE.0001
 		git commit -am "pom versions" 
 	fi
 
 	# git push -u origin
+elif [ $STEP == 'merge' ] ; then
+	__git_clean;
+
+	echo -e "*** Did you do the prod-branch to master merge yourself? For now we will not script that step. Type Y or y to confirm. *** \c "
+	read  confirm
+	if [ "${confirm,,}" != 'y' ] ; then
+        exit 1
+    fi
+
+	#checkout dev and merge master into & commit
+	git fetch --quiet && git checkout dev \
+		&& git merge --no-commit --quiet origin/master && git commit --quiet --no-edit
+
+	__git_clean;
+	echo "Master is merged into dev."
+
+	#merge dev into release bramch
+	git fetch --quiet && git checkout $BRANCHNAME \
+		&& git merge --no-commit --no-ff --quiet dev
+		
+	git status
+	echo "Git merge is done. Check the 'git status' above and commit if OK."
+elif [ $STEP == 'snapshot' ] ; then
+	__git_clean;
+
+	git fetch --quiet && git checkout dev
+
+	#set pom versions
+	if [ -f "pom.xml" ] ; then
+		mvn versions:set -DnewVersion=$SNAPSHOT.0001-SNAPSHOT
+		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$SNAPSHOT.0001-SNAPSHOT
+		git commit -am "pom versions" 
+	fi
 else 
 	__error "Unknown step '${STEP}'. Allowed values are: init, version, ..."
 fi
