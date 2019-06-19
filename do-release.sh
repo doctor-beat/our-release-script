@@ -19,6 +19,11 @@ function __git_clean {
 	fi
 }
 
+function __writeresult() {
+	now=$(date +"%D %T")
+	echo "Done $now $PROJECT $STEP $BRANCHNAME" >> .do-release.log
+}
+
 if [ -z ${STEP} ]; then
     __error "No step passed; Exiting program."
 fi
@@ -60,7 +65,8 @@ if [ $STEP == 'init' ] ; then
 
 	#create release branch & merge dev into
 	git fetch --quiet && git checkout -b $BRANCHNAME master \
-		&& git merge --no-commit --no-ff --quiet origin/dev
+		&& git merge --no-commit --no-ff --quiet origin/dev \
+		&& __writeresult
 		#&& git push -u origin/$BRANCHNAME \
 
 	git status
@@ -81,9 +87,10 @@ elif [ $STEP == 'version' ] ; then
 
 	#set pom versions
 	if [ -f "pom.xml" ] ; then
-		mvn versions:set -DnewVersion=$RELEASE.0001
-		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$RELEASE.0001
-		git commit -am "pom versions" 
+		mvn versions:set -DnewVersion=$RELEASE.0
+		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$RELEASE.0
+		git commit -am "pom versions" \
+		&& __writeresult
 	fi
 
 	# git push -u origin
@@ -105,7 +112,8 @@ elif [ $STEP == 'merge' ] ; then
 
 	#merge dev into release bramch
 	git fetch --quiet && git checkout $BRANCHNAME \
-		&& git merge --no-commit --no-ff --quiet dev
+		&& git merge --no-commit --no-ff --quiet dev \
+		&& __writeresult
 		
 	git status
 	echo "Git merge is done. Check the 'git status' above and commit if OK."
@@ -118,7 +126,9 @@ elif [ $STEP == 'snapshot' ] ; then
 	if [ -f "pom.xml" ] ; then
 		mvn versions:set -DnewVersion=$SNAPSHOT.0001-SNAPSHOT
 		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$SNAPSHOT.0001-SNAPSHOT
-		git commit -am "pom versions" 
+		git commit -am "pom versions" \
+		&& __writeresult	
+		
 	fi
 else 
 	__error "Unknown step '${STEP}'. Allowed values are: init, version, ..."
