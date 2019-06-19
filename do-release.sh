@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="19.06.001"
+VERSION="19.06.002"
 
 #WORKSPACES=/opt/hawaii/workspace
 PROJECT=${PWD##*/}
@@ -112,7 +112,7 @@ elif [ $STEP == 'merge' ] ; then
 
 	#merge dev into release bramch
 	git fetch --quiet && git checkout $BRANCHNAME \
-		&& git merge --no-commit --no-ff --quiet dev \
+		&& git merge --no-commit --no-ff --quiet origin/dev \
 		&& __writeresult
 		
 	git status
