@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="19.04.002"
+VERSION="19.06.001"
 
 #WORKSPACES=/opt/hawaii/workspace
 PROJECT=${PWD##*/}
