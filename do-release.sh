@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="19.06.002"
+VERSION="19.06.003"
 
 #WORKSPACES=/opt/hawaii/workspace
 PROJECT=${PWD##*/}
@@ -45,7 +45,7 @@ else
 fi
 
 echo "Preparing step '${STEP}' of release '$RELEASE' for '${PROJECT}'"
-echo " - version: ${VERSION}"
+echo " - script version: ${VERSION}"
 
 repo_info="$(git rev-parse --git-dir --is-inside-git-dir \
 	--is-bare-repository --is-inside-work-tree \
@@ -117,6 +117,15 @@ elif [ $STEP == 'merge' ] ; then
 		
 	git status
 	echo "Git merge is done. Check the 'git status' above and commit if OK."
+elif [ $STEP == 'tag' ] ; then
+	__git_clean;
+
+	git fetch --quiet && git checkout $BRANCHNAME \
+		&& git tag -a V$RELEASE.0 -m "Release of version $RELEASE.0"  \
+		&& git push origin V$RELEASE.0 \
+		&& __writeresult
+
+	echo "Git tagged 'V$RELEASE.0'"
 elif [ $STEP == 'snapshot' ] ; then
 	__git_clean;
 
