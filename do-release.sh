@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="19.06.003"
+VERSION="19.06.005"
 
 #WORKSPACES=/opt/hawaii/workspace
 PROJECT=${PWD##*/}
@@ -66,8 +66,8 @@ if [ $STEP == 'init' ] ; then
 	#create release branch & merge dev into
 	git fetch --quiet && git checkout -b $BRANCHNAME master \
 		&& git merge --no-commit --no-ff --quiet origin/dev \
+		&& git commit --quiet --no-edit && git push -u origin $BRANCHNAME \
 		&& __writeresult
-		#&& git push -u origin/$BRANCHNAME \
 
 	git status
 	echo "Git branch&merge is done. Check the 'git status' above and commit if OK."
@@ -89,7 +89,7 @@ elif [ $STEP == 'version' ] ; then
 	if [ -f "pom.xml" ] ; then
 		mvn versions:set -DnewVersion=$RELEASE.0
 		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$RELEASE.0
-		git commit -am "pom versions" \
+		git commit -am "pom versions"  && git push \
 		&& __writeresult
 	fi
 
@@ -113,6 +113,7 @@ elif [ $STEP == 'merge' ] ; then
 	#merge dev into release bramch
 	git fetch --quiet && git checkout $BRANCHNAME \
 		&& git merge --no-commit --no-ff --quiet origin/dev \
+		&& git commit --quiet --no-edit && git push  \
 		&& __writeresult
 		
 	git status
@@ -133,12 +134,33 @@ elif [ $STEP == 'snapshot' ] ; then
 
 	#set pom versions
 	if [ -f "pom.xml" ] ; then
-		mvn versions:set -DnewVersion=$SNAPSHOT.0001-SNAPSHOT
-		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$SNAPSHOT.0001-SNAPSHOT
-		git commit -am "pom versions" \
+		mvn versions:set -DnewVersion=$SNAPSHOT.0-SNAPSHOT
+		mvn versions:set-property -Dproperty=kahuna.backend.version -DnewVersion=$SNAPSHOT.0-SNAPSHOT
+		git commit -am "pom versions" && git push \
 		&& __writeresult	
-		
 	fi
+elif [ $STEP == 'golive' ] ; then
+	__git_clean ;
+
+	#create new prod-branch:
+	git checkout $BRANCHNAME \
+		&& git pull \
+		&& git checkout -b prod-${RELEASE} \
+		&& git push -u origin prod-${RELEASE}
+		
+	#merge to master:
+	git checkout master \
+		&& git pull \
+		&& git merge origin/$BRANCHNAME \
+		&& git push	
+		
+	#merge to dev:
+	git checkout dev \
+		&& git pull \
+		&& git merge origin/master \
+		&& git push	\
+		&& __writeresult
+		
 else 
 	__error "Unknown step '${STEP}'. Allowed values are: init, version, ..."
 fi
