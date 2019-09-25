@@ -70,7 +70,7 @@ if [ $STEP == 'init' ] ; then
 		&& __writeresult
 
 	git status
-	echo "Git branch&merge is done. Check the 'git status' above and commit if OK."
+	echo "Git branch&merge is done & committed & pushed."
 
 elif [ $STEP == 'version' ] ; then
 	current_branch=`git rev-parse --abbrev-ref HEAD`
@@ -130,7 +130,7 @@ elif [ $STEP == 'tag' ] ; then
 elif [ $STEP == 'snapshot' ] ; then
 	__git_clean;
 
-	git fetch --quiet && git checkout dev
+	git fetch --quiet && git checkout dev && git pull
 
 	#set pom versions
 	if [ -f "pom.xml" ] ; then
@@ -143,24 +143,39 @@ elif [ $STEP == 'golive' ] ; then
 	__git_clean ;
 
 	#create new prod-branch:
-	git checkout $BRANCHNAME \
-		&& git pull \
-		&& git checkout -b prod-${RELEASE} \
-		&& git push -u origin prod-${RELEASE}
+	echo "prj: ${PROJECT}"
+	if [ $PROJECT == 'kahuna-backend' ] ; then
+		echo "would create be branch"
+	fi
+	if [ $PROJECT == 'kahuna-backend' ] ; then
+		git checkout $BRANCHNAME \
+			&& git pull \
+			&& git checkout -b prod-${RELEASE} \
+			&& git push -u origin prod-${RELEASE}
+	fi
 		
 	#merge to master:
+	echo "+++ Merging to master: +++"
 	git checkout master \
 		&& git pull \
 		&& git merge origin/$BRANCHNAME \
 		&& git push	
 		
 	#merge to dev:
+	echo "+++ Merging to dev: +++"
 	git checkout dev \
 		&& git pull \
 		&& git merge origin/master \
 		&& git push	\
 		&& __writeresult
-		
+elif [ $STEP == 'pomconflict' ] ; then
+	__git_clean ;
+
+	git checkout --ours pom.xml &&  git checkout --ours */pom.xml \
+		&& git add --force pom.xml &&  git add --force */pom.xml \
+		&& git commit --no-edit \
+		&& git push	\
+		&& __writeresult
 else 
 	__error "Unknown step '${STEP}'. Allowed values are: init, version, ..."
 fi
