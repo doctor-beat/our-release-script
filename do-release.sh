@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="19.06.005"
+VERSION="19.06.006"
 
 #WORKSPACES=/opt/hawaii/workspace
 PROJECT=${PWD##*/}
@@ -25,7 +25,7 @@ function __writeresult() {
 }
 
 if [ -z ${STEP} ]; then
-    __error "No step passed; Exiting program."
+    __error "No step passed; Valid steps include init, merge, tag, golive, pomconflict. Exiting program."
 fi
 
 if [ $STEP == '-v' ] ; then
@@ -41,7 +41,7 @@ if [[ $RELEASE =~ ^([0-9]+)\.([0-9]+)$ ]]; then
 	next=$(( ${BASH_REMATCH[2]} + 1 ))
 	SNAPSHOT="${BASH_REMATCH[1]}.${next}"
 else 
-	__error "Invalid release version format"
+	__error "Invalid release version format. Valid: nn.nn"
 fi
 
 echo "Preparing step '${STEP}' of release '$RELEASE' for '${PROJECT}'"
@@ -72,7 +72,7 @@ if [ $STEP == 'init' ] ; then
 	git status
 	echo "Git branch&merge is done & committed & pushed."
 
-elif [ $STEP == 'version' ] ; then
+#elif [ $STEP == 'version' ] ; then
 	current_branch=`git rev-parse --abbrev-ref HEAD`
 	if [ $current_branch != $BRANCHNAME ] ; then
 		__error "Unexpected current branch: '${current_branch}' (Expected: '${BRANCHNAME}')."
@@ -127,7 +127,7 @@ elif [ $STEP == 'tag' ] ; then
 		&& __writeresult
 
 	echo "Git tagged 'V$RELEASE.0'"
-elif [ $STEP == 'snapshot' ] ; then
+#elif [ $STEP == 'snapshot' ] ; then
 	__git_clean;
 
 	git fetch --quiet && git checkout dev && git pull
@@ -168,14 +168,19 @@ elif [ $STEP == 'golive' ] ; then
 		&& git merge origin/master \
 		&& git push	\
 		&& __writeresult
-elif [ $STEP == 'pomconflict' ] ; then
-	__git_clean ;
+#elif [ $STEP == 'pomconflict' ] ; then
+	#__git_clean ;
 
-	git checkout --ours pom.xml &&  git checkout --ours */pom.xml \
-		&& git add --force pom.xml &&  git add --force */pom.xml \
-		&& git commit --no-edit \
-		&& git push	\
-		&& __writeresult
+	if [ -f "pom.xml" ] ; then
+    	echo "+++ Force pom conflict: +++"
+        git status --short | grep "^UU "
+
+    	git checkout --ours pom.xml &&  git checkout --ours */pom.xml
+    	git add --force pom.xml &&  git add --force */pom.xml
+    	git commit --no-edit \
+    		&& git push	\
+    		&& __writeresult
+    fi
 else 
 	__error "Unknown step '${STEP}'. Allowed values are: init, version, ..."
 fi
