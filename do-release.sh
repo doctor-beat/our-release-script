@@ -161,11 +161,8 @@ for project in ${PROJECTS[@]}; do
 	    __git_clean ;
 
 	    #create new prod-branch:
-	    echo "prj: ${PROJECT}"
-	    if [ $PROJECT == 'kahuna-backend' ] ; then
-		    echo "would create be branch"
-	    fi
-	    if [ $PROJECT == 'kahuna-backend' ] ; then
+	    echo "prj: ${project}"
+	    if [ $project == 'kahuna-backend' ] ; then
 		    git checkout $BRANCHNAME \
 			    && git pull \
 			    && git checkout -b prod-${RELEASE} \
