@@ -132,6 +132,7 @@ for project in ${PROJECTS[@]}; do
 	    git fetch --quiet && git checkout $BRANCHNAME \
 		    && git merge --no-commit --no-ff --quiet origin/dev \
 		    && git commit --quiet --no-edit && git push  \
+            && git checkout dev \
 		    && __writeresult
 		    
 	    git status
