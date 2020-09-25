@@ -115,11 +115,11 @@ for project in ${PROJECTS[@]}; do
     elif [ $STEP == 'merge' ] ; then
 	    __git_clean;
 
-	    echo -e "*** Did you do the prod-branch to master merge yourself? For now we will not script that step. Type Y or y to confirm. *** \c "
-	    read  confirm
-	    if [ "${confirm,,}" != 'y' ] ; then
-            exit 1
-        fi
+	    #echo -e "*** Did you do the prod-branch to master merge yourself? For now we will not script that step. Type Y or y to confirm. *** \c "
+	    #read  confirm
+	    #if [ "${confirm,,}" != 'y' ] ; then
+        #    exit 1
+        #fi
 
 	    #checkout dev and merge master into & commit
 	    git fetch --quiet && git checkout dev \
