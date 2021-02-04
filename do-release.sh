@@ -122,21 +122,22 @@ for project in ${PROJECTS[@]}; do
         #fi
 
 	    #checkout dev and merge master into & commit
-	    git fetch --quiet && git checkout dev \
+	    git fetch --quiet && git checkout dev && git pull --quiet \
 		    && git merge --no-commit --quiet origin/master && git commit --quiet --no-edit
 
 	    __git_clean;
 	    echo "Master is merged into dev."
 
 	    #merge dev into release bramch
-	    git fetch --quiet && git checkout $BRANCHNAME \
+	    git fetch --quiet && git checkout $BRANCHNAME  && git pull --quiet \
 		    && git merge --no-commit --no-ff --quiet origin/dev \
 		    && git commit --quiet --no-edit && git push  \
             && git checkout dev \
 		    && __writeresult
 		    
+        git checkout dev 
 	    git status
-	    echo "Git merge is done. Check the 'git status' above and commit if OK."
+	    echo "Git merge is done."
     elif [ $STEP == 'tag' ] ; then
 	    __git_clean;
 
