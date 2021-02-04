@@ -1,6 +1,8 @@
 $(function() {
-	
+	let version = 'v0.01b'
+	console.log("Running version: " + version);
 
+	//init config
 	var jobs = ["test-5_kahuna-backend_code_kah-be-jar-only_git"];
 	var jobsToBuild = [jobs[0]];
 	var xpath = "/maven2-moduleset/properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition[name= 'GIT']/defaultValue";
@@ -11,12 +13,13 @@ $(function() {
 	if (!match) {
 		console.log(regex, window.location.href)
 		//alert("ERROR: invalud url: " + window.location.href);
-		throw "ERROR: invalud url: " + window.location.href;
+		throw "ERROR: invalid url: " + window.location.href;
 	} else {
 		jobConfigUrl = match[1] + "{{$JOB}}/config.xml";
 		console.log(jobConfigUrl)
 	}
 	
+	//fix the csrf-token
 	var jenkinsCrumb = {};
 	setJenkinsCrumb();
 	
@@ -27,14 +30,14 @@ $(function() {
 	// ?step=init&branch=release-13.55
 	
 	
-	if (step = undefined) {
+	if (step === undefined) {
 		console.log("No step found, doing nothing speciall!");
 	} else {		
 		console.log("Step: " + step);
 		
 		$('h1').after( "<div id='my-content'><h2>Logger: " + step + ", " + branch + "</h2></div>" );
 		
-		if (branch == undefined) {
+		if (branch === undefined) {
 			throw "no branch found";
 		}
 		
@@ -48,22 +51,25 @@ $(function() {
 	function setJenkinsCrumb() {
 		$.get('https://ap.haw.vodafone.nl/jenkins//crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)', function(response){
 			let parts = response.split(':');
-			//let key = parts[0];
-			//jenkinsCrumb = {};
 			jenkinsCrumb[parts[0]] = parts[1];
 			console.log('jenkinsCrumb: ', jenkinsCrumb);
 		})
 	}
 	
 	function initJenkins(branch) {
-		for (job of jobs) {
-			$('#my-content').append(`<li id='li-${job}'><input type='checkbox' id='check-${job}'/>${job}</li>`);
+		for (let job of jobs) {
+			$('#my-content').append(`<li id='li-config-${job}' class='list-item'><b>Configure:</b> ${job}</li>`);
 		}	
 		
+		for (let job of jobsToBuild) {
+			let link = jobConfigUrl.replace("{{$JOB}}", job).replace('/config.xml', '');
+			$('#my-content').append(`<li id='li-build-${job}' class='list-item'><b>Building:</b> <a href='${link}' target='_blank'>${job}</a></li>`);
+		}	
 		
-		for (job of jobs) {
+		for (let job of jobs) {
 			let url = jobConfigUrl.replace("{{$JOB}}", job);
 			$.get(url, function(data) { callbackGet(data, url, job)});
+			$(`#li-config-${job}`).addClass('yellow');
 		}
 	}
 	
@@ -85,27 +91,30 @@ $(function() {
 	 			node.nodeValue = "origin/" + branch;
 	 			console.log(node.nodeValue);
 	 			
-	 			$(`#li-${job}`).append(`: Branch ${oldValue}  ==> ${node.nodeValue}`);
+	 			$(`#li-config-${job}`).append(` <i>(Branch ${oldValue}  ==> ${node.nodeValue})</i>`);
 			}
 		}
 		
-		postConfigXml(data, url)
+		postConfigXml(data, url, job)
 
 		console.log("After: ", data)
 		
-		if (jobsToBuild.include(job)) {
+		if (jobsToBuild.includes(job)) {
 			console.log("Running job: " + job);
-			postRunJob(url);
+			postRunJob(url, job);
 		}
 	}
 	
-	function postConfigXml(data, url) {
+	function postConfigXml(data, url, job) {
 		console.log("Posting to " + url)
 		$.ajax({
 		  type: "POST",
 		  url: url,
 		  data: data,
-		  success: function( result ) {console.log("Success: ", result)},
+		  success: function( result ) {
+		  	$(`#li-config-${job}`).addClass('green')
+		  	console.log("Success: ", result)
+		  },
 		  error: function( jqXHR, textStatus ) {console.log("Errror: ", jqXHR.status, textStatus, jqXHR.responseText)},
 		  //dataType: 'xml',
 		  headers: jenkinsCrumb,
@@ -113,18 +122,22 @@ $(function() {
 		});
 	}
 	
-	function postRunJob(url) {
+	function postRunJob(url, job) {
 		url = url.replace('/config.xml', '/buildWithParameters')
 		//https://ap.haw.vodafone.nl/jenkins/view/TEST/job/TEST-5/view/BE%20Kahuna/job/test-5_kahuna-backend_code_kah-be-jar-only_git/build
 		$.ajax({
 		  type: "POST",
 		  url: url,
 		  data: {},
-		  success: function( result ) {console.log("Job is running!")},
+		  success: function( result ) {
+		  	$(`#li-build-${job}`).addClass('green')
+		  	console.log("Job is running!")
+		  },
 		  error: function( jqXHR, textStatus ) {console.log("Errror: ", jqXHR.status, textStatus, jqXHR.responseText)},
 		  headers: jenkinsCrumb,
 		  //dataType: 'xml',
 		});
-		
+		$(`#li-build-${job}`).addClass('yellow');
+
 	}
 });

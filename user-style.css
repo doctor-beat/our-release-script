@@ -1,0 +1,31 @@
+#my-content {
+	border: 3px dotted blue;
+	padding: 12px;
+}
+
+li.list-item {
+	margin: 3px;
+}
+
+li.list-item.yellow.green {
+	background-color: #90EE90;
+}
+
+li.list-item.yellow {
+	background-color: #F3F781;
+}
+
+li.list-item.orange {
+	background-color: #FAB57F;
+}
+
+li.list-item a {
+	font-weight: normal;
+	border-bottom: 1px dotted;
+}
+
+li.list-item a:hover, li.list-item a:focus {
+	border-bottom: 1px solid;
+	text-decoration: none;
+}
+
