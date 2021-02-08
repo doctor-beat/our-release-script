@@ -25,6 +25,10 @@ function __writeresult() {
 	echo "Done $now $PROJECT $STEP $BRANCHNAME" >> .do-release.log
 }
 
+function callJenkins() {
+    xdg-open https://ap.haw.vodafone.nl/jenkins/view/TEST/job/TEST-20/api/?step=$STEP\&branch=$BRANCHNAME
+}
+
 if ! [[ $WORKSPACEDIR =~ ^.*/workspace(/([^/]+))?$ ]]; then
     __error "We are not in a workspace folder. Sorry..."
 else
@@ -110,7 +114,8 @@ for project in ${PROJECTS[@]}; do
 		    git commit -am "pom versions"  && git push \
 		    && __writeresult
 	    fi
-
+	    echo "Pom versioning is done & committed & pushed."
+        
 	    # git push -u origin
     elif [ $STEP == 'merge' ] ; then
 	    __git_clean;
@@ -159,6 +164,8 @@ for project in ${PROJECTS[@]}; do
 		    git commit -am "pom versions" && git push \
 		    && __writeresult	
 	    fi
+
+        callJenkins
     elif [ $STEP == 'golive' ] ; then
 	    __git_clean ;
 
@@ -204,6 +211,8 @@ for project in ${PROJECTS[@]}; do
 
     cd ..
 done
+
+callJenkins
 
 echo "Done my best."
 exit

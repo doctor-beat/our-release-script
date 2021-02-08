@@ -1,21 +1,28 @@
+'use strict';
+
 $(function() {
-	let version = 'v0.01b'
+	let version = 'v0.02'
 	console.log("Running version: " + version);
 
 	//init config
-	var jobs = ["test-5_kahuna-backend_code_kah-be-jar-only_git"];
+	var jobs = [	"test-20_kahuna-backend_code_kah-be-jar-only_git", 
+					"test-20_stubs_conf-code_stubs_git", 
+					"test-20_kahuna-backend_conf-code_kah-be_git",
+					"test-20_kahuna-backend_tests_automated-tests_git"];
 	var jobsToBuild = [jobs[0]];
+	var artifactJob = 'test-20_kahuna-backend_conf-code_kah-be_create-art';
+	
 	var xpath = "/maven2-moduleset/properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition[name= 'GIT']/defaultValue";
 	var jobConfigUrl = null;
 	
-	let regex = /(^http.*\/jenkins\/view\/TEST\/job\/TEST-\d+\/view\/.*\/job\/).*\/api\//;//https://ap.haw.vodafone.nl/jenkins/view/TEST/job/TEST-5/view/BE Kahuna/job/
+	let regex = /(^http.*\/jenkins\/view\/TEST\/job\/TEST-\d+\/)(.*\/)?api\//;//https://ap.haw.vodafone.nl/jenkins/view/TEST/job/TEST-5/
 	let match = window.location.href.match(regex);
 	if (!match) {
 		console.log(regex, window.location.href)
 		//alert("ERROR: invalud url: " + window.location.href);
 		throw "ERROR: invalid url: " + window.location.href;
 	} else {
-		jobConfigUrl = match[1] + "{{$JOB}}/config.xml";
+		jobConfigUrl = match[1] + "view/BE Kahuna/job/{{$JOB}}/config.xml";
 		console.log(jobConfigUrl)
 	}
 	
@@ -30,7 +37,7 @@ $(function() {
 	// ?step=init&branch=release-13.55
 	
 	
-	if (step === undefined) {
+	if (step === undefined || !step) {
 		console.log("No step found, doing nothing speciall!");
 	} else {		
 		console.log("Step: " + step);
@@ -43,6 +50,8 @@ $(function() {
 		
 		if (step == 'init') {
 			initJenkins(branch);
+		} else if (step == 'tag') {
+			tagJenkins(branch);
 		} else {
 			alert('ERROR: invalid step: ' + step);
 		}
@@ -65,11 +74,28 @@ $(function() {
 			let link = jobConfigUrl.replace("{{$JOB}}", job).replace('/config.xml', '');
 			$('#my-content').append(`<li id='li-build-${job}' class='list-item'><b>Building:</b> <a href='${link}' target='_blank'>${job}</a></li>`);
 		}	
-		
+
 		for (let job of jobs) {
 			let url = jobConfigUrl.replace("{{$JOB}}", job);
 			$.get(url, function(data) { callbackGet(data, url, job)});
 			$(`#li-config-${job}`).addClass('yellow');
+		}
+
+	}
+	
+	function tagJenkins(branch) {
+		{	let job = artifactJob;
+			let link = jobConfigUrl.replace("{{$JOB}}", job).replace('/config.xml', '');
+			$('#my-content').append(`<li id='li-build-${job}' class='list-item'><b>Building:</b> <a href='${link}' target='_blank'>${job}</a></li>`);
+		
+			let url = jobConfigUrl.replace("{{$JOB}}", job);
+			postArtifactJob(url, job, branch)
+		}
+		
+		{	let job = 'test-20_kahuna-backend_tests_automated-tests_git';
+
+			let url = jobConfigUrl.replace("{{$JOB}}", job).replace('/config.xml', '/ws/target/surefire-reports/*zip*/surefire-reports.zip')
+			window.open(url, '_self');
 		}
 	}
 	
@@ -100,8 +126,11 @@ $(function() {
 		console.log("After: ", data)
 		
 		if (jobsToBuild.includes(job)) {
-			console.log("Running job: " + job);
-			postRunJob(url, job);
+			//wait some time for the config to activate
+			setTimeout(function() {
+				console.log("Running job: " + job);
+    			postRunJob(url, job);
+			}, (5 * 1000));
 		}
 	}
 	
@@ -116,7 +145,6 @@ $(function() {
 		  	console.log("Success: ", result)
 		  },
 		  error: function( jqXHR, textStatus ) {console.log("Errror: ", jqXHR.status, textStatus, jqXHR.responseText)},
-		  //dataType: 'xml',
 		  headers: jenkinsCrumb,
 		  processData: false
 		});
@@ -124,7 +152,6 @@ $(function() {
 	
 	function postRunJob(url, job) {
 		url = url.replace('/config.xml', '/buildWithParameters')
-		//https://ap.haw.vodafone.nl/jenkins/view/TEST/job/TEST-5/view/BE%20Kahuna/job/test-5_kahuna-backend_code_kah-be-jar-only_git/build
 		$.ajax({
 		  type: "POST",
 		  url: url,
@@ -135,9 +162,26 @@ $(function() {
 		  },
 		  error: function( jqXHR, textStatus ) {console.log("Errror: ", jqXHR.status, textStatus, jqXHR.responseText)},
 		  headers: jenkinsCrumb,
-		  //dataType: 'xml',
+		});
+		$(`#li-build-${job}`).addClass('yellow');
+
+	}
+
+	function postArtifactJob(url, job, branch) {
+		url = url.replace('/config.xml', '/buildWithParameters')
+		$.ajax({
+		  type: "POST",
+		  url: url,
+		  data: {},
+		  success: function( result ) {
+		  	$(`#li-build-${job}`).addClass('green')
+		  	console.log("Job is running!")
+		  },
+		  error: function( jqXHR, textStatus ) {console.log("Errror: ", jqXHR.status, textStatus, jqXHR.responseText)},
+		  headers: jenkinsCrumb,
 		});
 		$(`#li-build-${job}`).addClass('yellow');
 
 	}
 });
+
