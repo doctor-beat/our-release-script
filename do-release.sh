@@ -165,7 +165,6 @@ for project in ${PROJECTS[@]}; do
 		    && __writeresult	
 	    fi
 
-        callJenkins
     elif [ $STEP == 'golive' ] ; then
 	    __git_clean ;
 
@@ -212,7 +211,9 @@ for project in ${PROJECTS[@]}; do
     cd ..
 done
 
-callJenkins
+if [ $STEP == 'init' ] || [ $STEP == 'tag' ] ; then
+    callJenkins
+fi
 
 echo "Done my best."
 exit
